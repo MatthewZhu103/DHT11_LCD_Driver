@@ -111,7 +111,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  init_lcd();
   /* USER CODE END 2 */
 
   /* Infinite loop */
