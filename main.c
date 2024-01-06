@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,20 +35,14 @@
 #define DHT11_PORT GPIOB
 #define DHT11_PIN GPIO_PIN_10
 
-#define D7_PORT GPIOB
-#define D7_PIN GPIO_PIN_4
-#define D6_PORT GPIOB
-#define D6_PIN GPIO_PIN_5
-#define D5_PORT GPIOB
-#define D5_PIN GPIO_PIN_3
-#define D4_PORT GPIOA
-#define D4_PIN GPIO_PIN_10
+#define D7_PIN GPIOB, GPIO_PIN_4
+#define D6_PIN GPIOB, GPIO_PIN_5
+#define D5_PIN GPIOB, GPIO_PIN_3
+#define D4_PIN GPIOA, GPIO_PIN_10
 
-#define enable_PORT GPIOC
-#define enable_PIN GPIO_PIN_0
+#define enable_PIN GPIOC, GPIO_PIN_0
 
-#define RS_PORT GPIOC
-#define RS_PIN GPIO_PIN_1
+#define RS_PIN GPIOC, GPIO_PIN_1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -73,7 +68,8 @@ uint8_t DHT11_Check_Response(void);
 uint8_t get_DHT11_bit_data(void);
 void init_lcd(void);
 void send_lcd_data(uint8_t data7, uint8_t data6, uint8_t data5, uint8_t data4);
-void display_lcd_data(uint8_t data7, uint8_t data6, uint8_t data5, uint8_t data4);
+void display_lcd_data(const char * line);
+void return_cursor(void);
 void clear_lcd(void);
 /* USER CODE END PFP */
 
@@ -118,12 +114,15 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	 clear_lcd();
-	 display_lcd_data(0, 1, 0, 0);
-	 display_lcd_data(0, 0, 0, 0);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  clear_lcd();
+	  display_lcd_data("Temperature: ");
+
+
+	  HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
@@ -242,7 +241,7 @@ void Set_Pin_Input(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){   //set a given pin 
 		GPIO_InitStruct.Pin = GPIO_Pin;
 		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 		GPIO_InitStruct.Pull = GPIO_PULLUP;
-		HAL_GPIO_Init(DHT11_PORT, &GPIO_InitStruct);
+		HAL_GPIO_Init(GPIOx, &GPIO_InitStruct);
 }
 
 
@@ -317,8 +316,7 @@ uint8_t get_DHT11_bit_data(void){ //read a single byte (set of 8 bits) of data
 void init_lcd(void){
 	send_lcd_data(0, 0, 1, 0);
 	clear_lcd();
-	send_lcd_data(0, 0, 0, 0);
-	send_lcd_data(0, 0, 1, 0);
+	return_cursor();
 	send_lcd_data(0, 0, 0, 0);
 	send_lcd_data(1, 1, 0, 0);
 }
@@ -329,26 +327,58 @@ void clear_lcd(void){
 	send_lcd_data(0,0,0,1);
 }
 
+void return_cursor(void){
+	send_lcd_data(0,0,0,0);
+	send_lcd_data(0,0,1,0);
+}
+
 
 void send_lcd_data(uint8_t data7, uint8_t data6, uint8_t data5, uint8_t data4){
-	HAL_GPIO_WritePin(RS_PORT, RS_PIN, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(enable_PORT, enable_PIN, GPIO_PIN_SET);
 
-	HAL_GPIO_WritePin(D7_PORT, D7_PIN, data7);
-	HAL_GPIO_WritePin(D6_PORT, D6_PIN, data6);
-	HAL_GPIO_WritePin(D5_PORT, D5_PIN, data5);
-	HAL_GPIO_WritePin(D4_PORT, D4_PIN, data4);
+	HAL_GPIO_WritePin(RS_PIN, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_SET);
+
+	HAL_GPIO_WritePin(D7_PIN, data7);
+	HAL_GPIO_WritePin(D6_PIN, data6);
+	HAL_GPIO_WritePin(D5_PIN, data5);
+	HAL_GPIO_WritePin(D4_PIN, data4);
 
 	HAL_Delay(100);
 
-	HAL_GPIO_WritePin(enable_PORT, enable_PIN, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_RESET);
 
 	HAL_Delay(100);
 
 }
 
-void display_lcd_data(uint8_t data7, uint8_t data6, uint8_t data5, uint8_t data4){
-	HAL_GPIO_WritePin(RS_PORT, RS_PIN, GPIO_PIN_SET);
+void display_lcd_data(const char *line){
+	HAL_GPIO_WritePin(RS_PIN, GPIO_PIN_SET);
+	for(uint8_t i = 0; line[i] != '\0'; i++){
+
+		HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_SET);
+		HAL_Delay(1);
+
+		HAL_GPIO_WritePin(D7_PIN, (line[i] & (1 << 7)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D6_PIN, (line[i] & (1 << 6)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D5_PIN, (line[i] & (1 << 5)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D4_PIN, (line[i] & (1 << 4)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_RESET);
+
+		HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_SET);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(D7_PIN, (line[i] & (1 << 3)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D6_PIN, (line[i] & (1 << 2)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D5_PIN, (line[i] & (1 << 1)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(D4_PIN, (line[i] & (1 << 0)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(enable_PIN, GPIO_PIN_RESET);
+	}
+
+
+	/*
+	 *
+	 * HAL_GPIO_WritePin(RS_PORT, RS_PIN, GPIO_PIN_SET);
 
 	HAL_GPIO_WritePin(enable_PORT, enable_PIN, GPIO_PIN_SET);
 
@@ -363,6 +393,7 @@ void display_lcd_data(uint8_t data7, uint8_t data6, uint8_t data5, uint8_t data4
 	HAL_GPIO_WritePin(enable_PORT, enable_PIN, GPIO_PIN_RESET);
 
 	HAL_GPIO_WritePin(RS_PORT, RS_PIN, GPIO_PIN_RESET);
+	*/
 
 }
 
