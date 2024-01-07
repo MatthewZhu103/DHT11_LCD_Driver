@@ -127,7 +127,7 @@ int main(void)
 
 			 TEMP = (int)Temp_int;
 			 RH = (int)Rh_int;
-			 char storage[40];
+			 char storage[33];
 			 sprintf(storage, "%d", TEMP);
 			 display_lcd_data("TEMP: ");
 			 display_lcd_data(storage);
